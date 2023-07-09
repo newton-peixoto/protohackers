@@ -11,7 +11,9 @@ defmodule PrimeServer do
     mode: :binary,
     active: false,
     reuseaddr: true,
-    exit_on_close: false
+    packet: :line,
+    exit_on_close: false,
+    buffer: 1024 * 100
   ]
 
   def start_link(opts) do
