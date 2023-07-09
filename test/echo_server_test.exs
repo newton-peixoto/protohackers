@@ -12,7 +12,7 @@ defmodule EchoServerTest do
     assert :gen_tcp.recv(socket, 0) == {:ok, "foofoo2"}
   end
 
-  test "handles multiple concurrent connections" do
+  test "it should handle multiple concurrent connections" do
     tasks =
       for _ <- 1..4 do
         Task.async(fn ->
