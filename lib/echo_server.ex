@@ -36,20 +36,21 @@ defmodule EchoServer do
   end
 
   defp handle_connection(socket) do
-    socket
-    |> read()
-    |> write(socket)
+    case recv_until_closed(socket, _buffer = "") do
+      {:ok, data} -> :gen_tcp.send(socket, data)
+      {:error, reason} -> Logger.error("Failed to receive data: #{inspect(reason)}")
+    end
 
     :gen_tcp.close(socket)
   end
 
-  defp read(socket) do
-    {:ok, data} = :gen_tcp.recv(socket, 0)
-    data
-  end
-
-  defp write(line, socket) do
-    :gen_tcp.send(socket, line)
+  # VULNERABILITY SINCE WE'RE NOT LIMITING A AMOUNT OF DATA -> fix creating a max buffer size guard
+  defp recv_until_closed(socket, buffer) do
+    case :gen_tcp.recv(socket, 0, 10_000) do
+      {:ok, data} -> recv_until_closed(socket, [buffer, data])
+      {:error, :closed} -> {:ok, buffer}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   def listen_socket({:ok, socket}) do
