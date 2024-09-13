@@ -13,17 +13,16 @@ defmodule Protohackers.Database.Prices do
   end
 
   def query(db = %__MODULE__{}, from, to) do
-    {_, prices} =
-      Enum.map_reduce(db.data, [], fn {timestamp, price}, acc ->
+      Enum.map_reduce(db.data, {0, 0} , fn {timestamp, price}, {count, sum} ->
         if timestamp >= from and timestamp <= to do
-          {nil, [price | acc]}
+          {nil, {count+1, sum + price}}
         else
-          {nil, acc}
+          {nil, {count, sum}}
         end
+      end) |>
+      then(fn
+        {_, {0, _price} } -> 0
+        {_, {count, price} } ->  div(price, count)
       end)
-
-    if length(prices) == 0,
-      do: Enum.sum(prices),
-      else: Integer.floor_div(Enum.sum(prices), length(prices))
   end
 end

@@ -33,7 +33,7 @@ defmodule MeanToEnd do
   # PRIVATE FUNCTIONS
 
   defp listen_socket({:ok, socket}) do
-    Logger.info("Listen on port #{inspect(@port)}")
+    Logger.info("Listenning on port #{inspect(@port)}")
     # handle concurrent connection on different processes
     {:ok, supervisor} = Task.Supervisor.start_link(max_children: 5)
     state = %__MODULE__{socket: socket, supervisor: supervisor}
@@ -55,7 +55,6 @@ defmodule MeanToEnd do
   defp handle_connection(socket, db) do
     case :gen_tcp.recv(socket, 9, 10_000) do
       {:ok, data} when byte_size(data) == 9 ->
-        Logger.info("Received #{data}")
         handle_message(socket, db, data)
         :gen_tcp.send(socket, data)
 
@@ -64,16 +63,16 @@ defmodule MeanToEnd do
     end
   end
 
-  defp handle_message(socket, db, <<?I, timestamp::32-big-integer, price::32-big-integer>>) do
-    Logger.info("Received #{timestamp} - #{price}")
+  defp handle_message(socket, db, <<?I, timestamp::32-signed-big, price::32-signed-big>>) do
+    Logger.info("Inserting at  #{timestamp} costing #{price}")
     db = Prices.add(db, {timestamp, price})
     handle_connection(socket, db)
   end
 
-  defp handle_message(socket, db, <<?Q, from::32-big-integer, to::32-big-integer>>) do
-    Logger.info("Received #{from} - #{to}")
+  defp handle_message(socket, db, <<?Q, from::32-signed-big, to::32-signed-big>>) do
+    Logger.info("Querying from  #{from} to #{to}")
     median = Prices.query(db, from, to)
-    :gen_tcp.send(socket, <<median::32-signed-integer>>)
+    :gen_tcp.send(socket, <<median::32-signed-big>>)
     handle_connection(socket, db)
   end
 end
