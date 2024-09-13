@@ -22,6 +22,8 @@ defmodule Protohackers.Database.Prices do
         end
       end)
 
-    Integer.floor_div(Enum.sum(prices), length(prices))
+    if length(prices) == 0,
+      do: Enum.sum(prices),
+      else: Integer.floor_div(Enum.sum(prices), length(prices))
   end
 end

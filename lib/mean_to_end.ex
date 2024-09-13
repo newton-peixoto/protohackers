@@ -55,6 +55,7 @@ defmodule MeanToEnd do
   defp handle_connection(socket, db) do
     case :gen_tcp.recv(socket, 9, 10_000) do
       {:ok, data} when byte_size(data) == 9 ->
+        Logger.info("Received #{data}")
         handle_message(socket, db, data)
         :gen_tcp.send(socket, data)
 
@@ -64,11 +65,13 @@ defmodule MeanToEnd do
   end
 
   defp handle_message(socket, db, <<?I, timestamp::32-big-integer, price::32-big-integer>>) do
+    Logger.info("Received #{timestamp} - #{price}")
     db = Prices.add(db, {timestamp, price})
     handle_connection(socket, db)
   end
 
   defp handle_message(socket, db, <<?Q, from::32-big-integer, to::32-big-integer>>) do
+    Logger.info("Received #{from} - #{to}")
     median = Prices.query(db, from, to)
     :gen_tcp.send(socket, <<median::32-signed-integer>>)
     handle_connection(socket, db)
