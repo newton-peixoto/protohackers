@@ -5,7 +5,8 @@ defmodule Protohackers.Application do
   def start(_type, _args) do
     children = [
       {EchoServer, []},
-      {PrimeServer, []}
+      {PrimeServer, []},
+      {MeanToEnd, []}
     ]
 
     opts = [strategy: :one_for_one, name: Protohackers.Supervisor]
