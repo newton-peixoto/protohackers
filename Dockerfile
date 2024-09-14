@@ -45,5 +45,4 @@ ENV LC_ALL en_US.UTF-8
 WORKDIR /app
 
 COPY --from=builder /app/_build/prod/rel ./
-
 CMD /app/protohackers/bin/protohackers start
