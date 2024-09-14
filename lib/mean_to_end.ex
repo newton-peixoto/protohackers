@@ -33,7 +33,7 @@ defmodule MeanToEnd do
   # PRIVATE FUNCTIONS
 
   defp listen_socket({:ok, socket}) do
-    Logger.info("Listenning on port #{inspect(@port)}")
+    Logger.info("listening on port #{inspect(@port)}")
     # handle concurrent connection on different processes
     {:ok, supervisor} = Task.Supervisor.start_link(max_children: 5)
     state = %__MODULE__{socket: socket, supervisor: supervisor}

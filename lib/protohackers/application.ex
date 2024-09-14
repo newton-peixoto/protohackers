@@ -6,7 +6,9 @@ defmodule Protohackers.Application do
     children = [
       {EchoServer, []},
       {PrimeServer, []},
-      {MeanToEnd, []}
+      {MeanToEnd, []},
+      {Protohackers.Database.Chat, []},
+      {BudgetChatServer, []},
     ]
 
     opts = [strategy: :one_for_one, name: Protohackers.Supervisor]
