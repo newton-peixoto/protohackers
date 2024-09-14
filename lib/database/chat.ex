@@ -31,13 +31,13 @@ defmodule Protohackers.Database.Chat do
 
   @impl true
   def handle_call({:add, {username, socket}}, _from, state) do
-    state = Map.put(state, username, socket)
+    state = Map.put(state, socket, username)
     {:reply, state, state}
   end
 
   @impl true
   def handle_cast({:delete, socket}, state) do
-    state = Map.reject(state, fn {_, val } -> val == socket end )
+    state =  Map.delete(state, socket)
     {:noreply, state}
   end
 end

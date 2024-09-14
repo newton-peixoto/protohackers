@@ -23,18 +23,17 @@ defmodule BudgetChatServer do
 
   @impl true
   def init(_opts) do
-    listen_socket(:gen_tcp.listen(@port, @socket_options))
-  end
+    case :gen_tcp.listen(@port, @socket_options) do
+      {:ok, socket} ->
+        Logger.info("listening on port #{inspect(@port)}")
+        {:ok, supervisor} = Task.Supervisor.start_link(max_children: 100)
+        state = %__MODULE__{socket: socket, supervisor: supervisor}
+        {:ok, state, {:continue, :accept}}
 
-  defp listen_socket({:ok, socket}) do
-    Logger.info("listening on port #{inspect(@port)}")
-    # handle concurrent connection on different processes
-    {:ok, supervisor} = Task.Supervisor.start_link(max_children: 10)
-    state = %__MODULE__{socket: socket, supervisor: supervisor}
-    {:ok, state, {:continue, :accept}}
+      {:error, reason} ->
+        {:stop, reason}
+    end
   end
-
-  defp listen_socket({:error, reason}), do: {:stop, reason}
 
   @impl true
   def handle_continue(:accept, %__MODULE__{} = state) do
@@ -55,22 +54,18 @@ defmodule BudgetChatServer do
       {:ok, current_user} ->
         current_user = String.trim(current_user)
 
+        all_users = Chat.all_users()
+
         if String.match?(current_user, ~r/^[a-zA-Z0-9]+$/) do
+          all_sockets = Enum.map(all_users, fn {socket, _username} -> socket end)
+          usernames = Enum.map_join(all_users, ", ", fn {_socket, username} -> username end)
+
           Chat.add(current_user, socket)
-
-          all_users = Chat.all_users()
-          all_sockets = Enum.map(all_users, fn {_username, socket} -> socket end)
-
-          usernames =
-            Enum.filter(all_users, fn {_, s} -> s != socket end)
-            |> Enum.map_join(", ", fn {username, _socket} -> username end)
-
+          Logger.debug("User [#{current_user}] joined.")
           :gen_tcp.send(socket, "* The room contains: #{usernames}\n")
 
           Enum.each(all_sockets, fn s ->
-            if s == socket,
-              do: :ok,
-              else: :gen_tcp.send(s, "* #{current_user} has entered the room\n")
+            :gen_tcp.send(s, "* #{current_user} has entered the room\n")
           end)
 
           handle_messages(socket, current_user)
@@ -92,7 +87,7 @@ defmodule BudgetChatServer do
         if message != "" do
           all_users = Chat.all_users()
 
-          Enum.each(all_users, fn {_u, s} ->
+          Enum.each(all_users, fn {s, _u} ->
             if s == socket, do: :ok, else: :gen_tcp.send(s, "[#{current_user}] #{message}\n")
           end)
         end
@@ -101,11 +96,14 @@ defmodule BudgetChatServer do
 
       {:error, _} ->
         all_users = Chat.all_users()
-        Enum.each(all_users, fn {_, s} ->
+
+        Enum.each(all_users, fn {s, _} ->
           if s == socket, do: :ok, else: :gen_tcp.send(s, "* #{current_user} has left the room\n")
         end)
+
         :gen_tcp.close(socket)
         Chat.delete(socket)
+        Logger.debug("User [#{current_user}] left.")
     end
   end
 end
