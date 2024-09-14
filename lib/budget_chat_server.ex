@@ -84,14 +84,16 @@ defmodule BudgetChatServer do
 
         if message != "" do
           all_users = Chat.all_users()
-          send_all_messages(socket, all_users, current_user, message)
+          all_sockets = Enum.map(all_users, &elem(&1, 0))
+          send_all_messages(socket, all_sockets, current_user, message)
         end
 
         handle_messages(socket, current_user)
 
       {:error, _} ->
         all_users = Chat.all_users()
-        send_all_messages(socket, all_users, current_user, :left)
+        all_sockets = Enum.map(all_users, &elem(&1, 0))
+        send_all_messages(socket, all_sockets, current_user, :left)
 
         :gen_tcp.close(socket)
         Chat.delete(socket)
@@ -100,6 +102,7 @@ defmodule BudgetChatServer do
   end
 
   defp send_all_messages(sender, receivers, current_user, :joined) do
+    Logger.debug("#{inspect(receivers)}")
     Enum.each(receivers, fn s ->
       send_message(sender, s, "* #{current_user} has entered the room\n")
     end)
