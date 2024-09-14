@@ -4,6 +4,7 @@ defmodule BudgetChatServer do
   alias Protohackers.Database.Chat
 
   defstruct [:socket, :supervisor]
+  @moduledoc false
 
   @port 5004
 
@@ -57,16 +58,13 @@ defmodule BudgetChatServer do
         all_users = Chat.all_users()
 
         if String.match?(current_user, ~r/^[a-zA-Z0-9]+$/) do
-          all_sockets = Enum.map(all_users, fn {socket, _username} -> socket end)
-          usernames = Enum.map_join(all_users, ", ", fn {_socket, username} -> username end)
+          all_sockets = Enum.map(all_users, &elem(&1, 0))
+          usernames = Enum.map_join(all_users, ", ", &elem(&1, 1))
 
           Chat.add(current_user, socket)
           Logger.debug("User [#{current_user}] joined.")
           :gen_tcp.send(socket, "* The room contains: #{usernames}\n")
-
-          Enum.each(all_sockets, fn s ->
-            :gen_tcp.send(s, "* #{current_user} has entered the room\n")
-          end)
+          send_all_messages(socket, all_sockets, current_user, :joined)
 
           handle_messages(socket, current_user)
         else
@@ -86,24 +84,39 @@ defmodule BudgetChatServer do
 
         if message != "" do
           all_users = Chat.all_users()
-
-          Enum.each(all_users, fn {s, _u} ->
-            if s == socket, do: :ok, else: :gen_tcp.send(s, "[#{current_user}] #{message}\n")
-          end)
+          send_all_messages(socket, all_users, current_user, message)
         end
 
         handle_messages(socket, current_user)
 
       {:error, _} ->
         all_users = Chat.all_users()
-
-        Enum.each(all_users, fn {s, _} ->
-          if s == socket, do: :ok, else: :gen_tcp.send(s, "* #{current_user} has left the room\n")
-        end)
+        send_all_messages(socket, all_users, current_user, :left)
 
         :gen_tcp.close(socket)
         Chat.delete(socket)
         Logger.debug("User [#{current_user}] left.")
     end
   end
+
+  defp send_all_messages(sender, receivers, current_user, :joined) do
+    Enum.each(receivers, fn s ->
+      send_message(sender, s, "* #{current_user} has entered the room\n")
+    end)
+  end
+
+  defp send_all_messages(sender, receivers, current_user, :left) do
+    Enum.each(receivers, fn s ->
+      send_message(sender, s, "* #{current_user} has left the room\n")
+    end)
+  end
+
+  defp send_all_messages(sender, receivers, current_user, message) do
+    Enum.each(receivers, fn s -> send_message(sender, s, "[#{current_user}] #{message}\n") end)
+  end
+
+  defp send_message(sender, sender, _), do: :ok
+
+  defp send_message(_sender, receiver, message),
+    do: :gen_tcp.send(receiver, message)
 end

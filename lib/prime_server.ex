@@ -4,6 +4,7 @@ defmodule PrimeServer do
 
   defstruct [:socket, :supervisor]
 
+  @moduledoc false
   @port 5002
 
   @socket_options [
@@ -63,7 +64,7 @@ defmodule PrimeServer do
 
   defp handle_line({:ok, %{"method" => "isPrime", "number" => number}}, socket)
        when is_number(number) do
-    response = %{method: "isPrime", prime: is_prime?(number)}
+    response = %{method: "isPrime", prime: prime?(number)}
     :gen_tcp.send(socket, Jason.encode!(response) <> "\n")
     read_line(:gen_tcp.recv(socket, 0, 10_000), socket)
   end
@@ -74,11 +75,11 @@ defmodule PrimeServer do
     {:error, :invalid_request}
   end
 
-  defp is_prime?(n) when n < 2, do: false
-  defp is_prime?(n) when is_float(n), do: false
-  defp is_prime?(n) when n in [2, 3], do: true
+  defp prime?(n) when n < 2, do: false
+  defp prime?(n) when is_float(n), do: false
+  defp prime?(n) when n in [2, 3], do: true
 
-  defp is_prime?(n) do
+  defp prime?(n) do
     not Enum.any?(2..trunc(:math.sqrt(n)), &(rem(n, &1) == 0))
   end
 end

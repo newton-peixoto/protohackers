@@ -2,6 +2,7 @@ defmodule MeanToEnd do
   alias Protohackers.Database.Prices
   use GenServer
   require Logger
+  @moduledoc false
 
   defstruct [:socket, :supervisor]
 

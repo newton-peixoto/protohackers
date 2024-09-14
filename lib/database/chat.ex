@@ -1,5 +1,6 @@
 defmodule Protohackers.Database.Chat do
   use GenServer
+  @moduledoc false
 
   def start_link(_opts) do
     GenServer.start(__MODULE__, %{}, name: __MODULE__)
@@ -17,10 +18,9 @@ defmodule Protohackers.Database.Chat do
     GenServer.cast(__MODULE__, {:delete, socket})
   end
 
-
   # Call backs
   @impl true
-  def init(users = %{}) do
+  def init(%{} = users) do
     {:ok, users}
   end
 
@@ -37,7 +37,7 @@ defmodule Protohackers.Database.Chat do
 
   @impl true
   def handle_cast({:delete, socket}, state) do
-    state =  Map.delete(state, socket)
+    state = Map.delete(state, socket)
     {:noreply, state}
   end
 end

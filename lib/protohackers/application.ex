@@ -1,6 +1,8 @@
 defmodule Protohackers.Application do
   use Application
 
+  @moduledoc false
+
   @impl true
   def start(_type, _args) do
     children = [
@@ -8,7 +10,7 @@ defmodule Protohackers.Application do
       {PrimeServer, []},
       {MeanToEnd, []},
       {Protohackers.Database.Chat, []},
-      {BudgetChatServer, []},
+      {BudgetChatServer, []}
     ]
 
     opts = [strategy: :one_for_one, name: Protohackers.Supervisor]

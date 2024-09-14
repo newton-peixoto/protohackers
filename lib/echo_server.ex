@@ -3,6 +3,7 @@ defmodule EchoServer do
   require Logger
 
   defstruct [:socket, :supervisor]
+  @moduledoc false
 
   @port 5001
 
